@@ -21,3 +21,21 @@ export interface ChartData {
   A: number;
   fullMark: number;
 }
+
+export type IncidentStatus = 'SIGNALÉ' | 'VÉRIFIÉ' | 'EN ATTENTE' | 'RÉSOLU';
+
+export interface Incident {
+  id: string;
+  date: string;
+  title: string;
+  description: string;
+  amount: number;
+  status: IncidentStatus;
+  scoreImpact: number;
+}
+
+export interface UserProfile {
+  name: string;
+  idRef: string;
+  publicHash?: string; // L'identité "Black Mirror" visible par le public
+}

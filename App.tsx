@@ -1,23 +1,68 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
 import ChallengeExplorer from './components/ChallengeExplorer';
 import AIAdvisor from './components/AIAdvisor';
 import CitizenRecord from './components/CitizenRecord';
-import { Challenge } from './types';
+import LoginGateway from './components/LoginGateway'; // Importation
+import { Challenge, UserProfile } from './types';
 
-// États de l'interface : Introduction du mode SIMULATION
+// États de l'interface
 type ViewMode = 'SYNTHESIS' | 'EVIDENCE' | 'SIMULATION';
 
+// Générateur de "bruit" pour l'identité publique (Black Mirror style)
+const generatePublicHash = () => {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%&?*§";
+    let result = "";
+    // Format : XXX-XXXX-XXX avec symboles
+    for (let i = 0; i < 10; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result; // Ex: "7k$9P#m2X!"
+};
+
 const App: React.FC = () => {
-  // L'état par défaut est la Synthèse (Vue d'ensemble)
   const [viewMode, setViewMode] = useState<ViewMode>('SYNTHESIS');
-  
-  // La "Contre-Enquête" (IA)
   const [isAnalysisPanelOpen, setAnalysisPanelOpen] = useState(false);
-  
-  // Le contexte critique (quel dossier est en cours d'examen ?)
   const [activeDossier, setActiveDossier] = useState<Challenge | null>(null);
+  
+  // Gestion de la session utilisateur
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+      // Vérification simple de session locale
+      const session = localStorage.getItem('trust_session');
+      if (session) {
+          setIsAuthenticated(true);
+      }
+  }, []);
+
+  const handleLogin = (method: string) => {
+      // Simulation d'authentification
+      localStorage.setItem('trust_session', 'active');
+      localStorage.setItem('trust_auth_method', method);
+      
+      // Si c'est une "vraie" connexion (Google/FB), on génère un profil avec un Hash Unique
+      if (method !== 'ANONYMOUS') {
+          // On vérifie si un profil existe déjà, sinon on en crée un nouveau
+          const existingProfile = localStorage.getItem('trust_profile');
+          
+          if (!existingProfile) {
+              const randomId = Math.floor(Math.random() * 9000) + 1000;
+              const mockProfile: UserProfile = {
+                  name: method === 'GOOGLE' ? 'Utilisateur Google' : 'Utilisateur Facebook',
+                  idRef: `FR-${randomId}`,
+                  publicHash: generatePublicHash() // Génération unique à la connexion
+              };
+              localStorage.setItem('trust_profile', JSON.stringify(mockProfile));
+          }
+      } else {
+          // Mode invité : on nettoie le profil pour être sûr d'être anonyme
+          localStorage.removeItem('trust_profile');
+      }
+      
+      setIsAuthenticated(true);
+  };
 
   const openInvestigation = (dossier: Challenge) => {
     setActiveDossier(dossier);
@@ -32,14 +77,8 @@ const App: React.FC = () => {
     setAnalysisPanelOpen(!isAnalysisPanelOpen);
   };
 
-  // Callback spécial pour le CitizenRecord pour analyser un point précis du profil
   const analyzeContext = (context: string) => {
-      // On ouvre le panneau
       setAnalysisPanelOpen(true);
-      
-      // On crée un "Challenge fictif" pour porter le contexte à l'IA
-      // Note: Idéalement AIAdvisor devrait accepter une prop 'initialQuery' ou 'contextOverride'
-      // Ici, on utilise le state existant en détournant légèrement le type pour l'immédiateté
       setActiveDossier({
           id: 999,
           category: 'SIMULATION' as any,
@@ -50,6 +89,11 @@ const App: React.FC = () => {
       });
   };
 
+  // Si pas authentifié, afficher le portail
+  if (!isAuthenticated) {
+      return <LoginGateway onLogin={handleLogin} />;
+  }
+
   return (
     <Layout 
       currentView={viewMode} 
@@ -59,7 +103,6 @@ const App: React.FC = () => {
     >
       <div className="flex h-full overflow-hidden">
         
-        {/* ZONE PRINCIPALE : LES FAITS (Scrollable) */}
         <div className={`flex-1 overflow-y-auto bg-[#F5F5F0] transition-all duration-0 ${isAnalysisPanelOpen ? 'lg:w-2/3 border-r-2 border-black' : 'w-full'}`}>
           <div className="p-4 md:p-12 min-h-full">
             {viewMode === 'SYNTHESIS' && (
@@ -76,7 +119,6 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        {/* ZONE CRITIQUE : LA CONTRE-ENQUÊTE (Fixed / Sticky) */}
         {isAnalysisPanelOpen && (
           <div className="w-full lg:w-[450px] flex-shrink-0 bg-white border-t-2 lg:border-t-0 lg:border-l-0 border-black shadow-[-10px_0_0_0_rgba(0,0,0,0.1)] h-[50vh] lg:h-auto flex flex-col z-20 absolute bottom-0 lg:relative lg:bottom-auto lg:right-auto">
              <AIAdvisor 
