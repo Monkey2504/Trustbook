@@ -1,0 +1,5 @@
+{
+  "name": "TrustRegister Explorer",
+  "description": "Interactive dashboard to analyze and solve challenges for the 'Registre de Fiabilité Public' project using AI assistance.",
+  "requestFramePermissions": []
+}
